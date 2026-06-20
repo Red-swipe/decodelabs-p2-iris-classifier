@@ -14,7 +14,7 @@ def main():
     os.makedirs(MODELS_DIR, exist_ok=True)
     os.makedirs(PLOTS_DIR, exist_ok=True)
 
-    X_train, X_test, y_train, y_test, scaler, target_names, X_scaled = (
+    X_train, X_test, y_train, y_test, scaler, target_names, X_scaled, y = (
         load_and_split_data()
     )
     model_configs = get_model_configs()

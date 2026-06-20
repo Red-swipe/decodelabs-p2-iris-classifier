@@ -13,4 +13,4 @@ def load_and_split_data(test_size=0.2, random_state=42):
     X_train, X_test, y_train, y_test = train_test_split(
         X_scaled, y, test_size=test_size, shuffle=True, random_state=random_state
     )
-    return X_train, X_test, y_train, y_test, scaler, target_names, X_scaled
+    return X_train, X_test, y_train, y_test, scaler, target_names, X_scaled, y
