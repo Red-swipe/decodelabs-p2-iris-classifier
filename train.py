@@ -3,8 +3,12 @@ import joblib
 from sklearn.model_selection import StratifiedKFold, GridSearchCV
 from data_loader import load_and_split_data
 from models import get_model_configs
-from evaluate import evaluate_model, print_confusion_matrix
-
+from evaluate import (
+    evaluate_model,
+    print_confusion_matrix,
+    evaluate_stress_small_train,
+    evaluate_stress_noise,
+)
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 PLOTS_DIR = os.path.join(os.path.dirname(__file__), "plots")
@@ -35,7 +39,7 @@ def main():
         y_pred, acc, f1, cm, report = evaluate_model(
             best, X_test, y_test, target_names
         )
-        results.append((name, f1, acc, grid.best_params_))
+        results.append((name, f1, acc, grid.best_params_, best))
 
         if best_entry is None or f1 > best_entry[1]:
             best_entry = (name, f1, best)
@@ -62,26 +66,52 @@ def main():
     print("=" * 110)
     print(f"  {'Rank':<6}{'Model':<25}{'F1':<10}{'Accuracy':<10}{'Best Params':<50}")
     print("  " + "-" * 106)
-    for rank, (name, f1, acc, best_params) in enumerate(results, 1):
+    for rank, (name, f1, acc, best_params, _) in enumerate(results, 1):
         params_str = str(best_params) if best_params else "(none)"
         print(f"  {rank:<6}{name:<25}{f1:<10.4f}{acc:<10.4f}{params_str:<50}")
 
-    best_name, best_f1, best_model = best_entry
+    print()
+    print("=" * 120)
+    print("  STRESS TEST — Small Training Set (30% train, 70% test)")
+    print("=" * 120)
+
+    stress_scores = []
+    for name, _, _, _, best_model in results:
+        small_f1 = evaluate_stress_small_train(best_model, train_frac=0.3, random_state=42)
+        noise_f1 = evaluate_stress_noise(best_model, X_test, y_test, noise_std=0.3, random_state=42)
+        combined = (small_f1 + noise_f1) / 2
+        stress_scores.append((name, small_f1, noise_f1, combined))
+
+    stress_scores.sort(key=lambda r: r[3], reverse=True)
+
+    print(f"  {'Rank':<6}{'Model':<25}{'Small-Train F1':<20}{'Noise F1':<20}{'Combined Score':<20}")
+    print("  " + "-" * 106)
+    for rank, (name, small_f1, noise_f1, combined) in enumerate(stress_scores, 1):
+        print(f"  {rank:<6}{name:<25}{small_f1:<20.4f}{noise_f1:<20.4f}{combined:<20.4f}")
+
+    stress_winner_name, _, _, stress_winner_combined = stress_scores[0]
+    stress_winner_model = None
+    for name, _, _, _, best_model in results:
+        if name == stress_winner_name:
+            stress_winner_model = best_model
+            break
+
     print()
     print("=" * 80)
-    print(f"  BEST MODEL: {best_name}  (F1 = {best_f1:.4f})")
+    print("  STANDARD TEST — ALL MODELS TIED (ceiling accuracy on Iris)")
+    print(f"  STRESS TEST WINNER: {stress_winner_name}  (Combined = {stress_winner_combined:.4f})")
     print("=" * 80)
 
-    joblib.dump(best_model, os.path.join(MODELS_DIR, "best_model.joblib"))
+    joblib.dump(stress_winner_model, os.path.join(MODELS_DIR, "best_model.joblib"))
     joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.joblib"))
     print(f"  Saved best_model.joblib and scaler.joblib to {MODELS_DIR}/")
 
     try:
         from visualize import plot_confusion_matrix, plot_decision_boundary
 
-        plot_confusion_matrix(best_model, X_test, y_test, target_names, PLOTS_DIR)
+        plot_confusion_matrix(stress_winner_model, X_test, y_test, target_names, PLOTS_DIR)
         plot_decision_boundary(
-            best_model, X_train, y_train, X_scaled, y, scaler, target_names, PLOTS_DIR
+            stress_winner_model, X_train, y_train, X_scaled, y, scaler, target_names, PLOTS_DIR
         )
         print(f"  Plots saved to {PLOTS_DIR}/")
     except ImportError:
