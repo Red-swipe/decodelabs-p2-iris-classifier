@@ -1,4 +1,4 @@
-# PRO#2 — Iris Flower Classifier
+# Project 2 — Iris Flower Classifier
 
 A supervised machine learning project that classifies Iris flower species using 6 ML models with hyperparameter tuning, cross-validation, and a modular pipeline. This is **Project 2** of the DecodeLabs AI Internship Track.
 
