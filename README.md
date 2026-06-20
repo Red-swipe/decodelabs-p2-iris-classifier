@@ -1,4 +1,4 @@
-# PRO#2 — Iris Flower Classifier (KNN)
+# Project 2 — Iris Flower Classifier (KNN)
 
 A supervised machine learning project that classifies Iris flower species using a K-Nearest Neighbors classifier. This is **Project 2** of the DecodeLabs AI Internship Track, progressing from rule-based logic (PRO#1) into statistical ML approaches.
 
